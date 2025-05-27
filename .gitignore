@@ -1,2 +1,4 @@
 .env
 outputs/node_modules
+react_project_01\app01\node_modules
+venv
