@@ -1,13 +1,21 @@
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_ollama.llms import OllamaLLM
+from google import genai
+import os
 from langchain_community.document_loaders import TextLoader
 from read_js_file import read_file_text
 from dotenv import load_dotenv
-import os
 from langchain_core.output_parsers import StrOutputParser
 import shutil
 
 load_dotenv()
+
+'''
+Steps:
+here additionally will be handling the css and assets and public folders etc.
+Only single basic components, nothing else yet
+
+public->public
+
+'''
 
 def find_file_by_name(directory, target_filename):
     for root, dirs, files in os.walk(directory):
@@ -25,21 +33,24 @@ def process_files(react_project_path, nextjs_project_path):
     loader = TextLoader(app_file_path)
     document = loader.load()
     
-    llm = OllamaLLM(model="llama3")
-    
-    prompt_template = ChatPromptTemplate.from_template('''
+    api_key = os.getenv('GOOGLE_GEMINI_API_KEY')
+
+    client = genai.Client(api_key=api_key)
+
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=f'''
         Convert the following React component in app.tsx style to a Next.js page.tsx component with default export Home.
         Do not add any comments or anything, as the code is directly being written into a program.
         Since it is a next js project file, remember to follow all convention including client and server side rendering...
         \n\n
-        Original code:\n{code}\n\n
-        Converted Next.js page.tsx code:'''
+        Original code:\n{document[0].page_content}\n\n
+        Converted Next.js page.tsx code:
+        '''
     )
-    
-    chain = prompt_template | llm | StrOutputParser()
-    
-    converted_code = chain.invoke({"code": document[0].page_content})
-    
+
+    converted_code = response.text
+        
     pages_dir = os.path.join(nextjs_project_path, "src/app")
     os.makedirs(pages_dir, exist_ok=True)
     destination_path = os.path.join(pages_dir, "page.tsx")
@@ -48,21 +59,11 @@ def process_files(react_project_path, nextjs_project_path):
         f.write(converted_code)
     
     print(f"Successfully converted {app_file_path} to {destination_path}")
-    
-    # css_source_path = find_file_by_name(os.path.join(react_project_path, "src"), "index.css")
-    
-    # if css_source_path:
-    #     # Determine CSS destination path
-    #     css_dest_dir = os.path.join(nextjs_project_path, "app")
-    #     os.makedirs(css_dest_dir, exist_ok=True)
-    #     css_dest_path = os.path.join(css_dest_dir, "index.css")
-        
-    #     shutil.copyfile(css_source_path, css_dest_path)
-    #     print(f"Successfully copied {css_source_path} to {css_dest_path}")
-    # else:
-    #     print("index.css not found in the React project's src directory")
+
+
 
 if __name__ == "__main__":
     react_project = "./react_project_01/app01"
     nextjs_project = "./react_project_01/next-app01"
     process_files(react_project, nextjs_project)
+

@@ -2,4 +2,6 @@
 outputs/node_modules
 react_project_01\app01\node_modules
 react_project_01\next-app01\node_modules
+react_project_02\app01\node_modules
+react_project_02\next-app01\node_modules
 venv
